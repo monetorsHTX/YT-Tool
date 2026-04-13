@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Looper",
+  "version": "1.0",
+  "description": "Toggle looping for the current YouTube video.",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://www.youtube.com/*"],
+      "js": ["content.js"]
+    },
+    {
+      "matches": ["*://www.youtube.com/*"],
+      "js": ["injected.js"],
+      "world": "MAIN"
+    }
+  ]
+}

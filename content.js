@@ -45,14 +45,25 @@ function onVideoEnded() {
   }
 }
 
+function onTimeUpdate() {
+  if (!loopEnabled) return;
+  if (this.duration && this.currentTime >= this.duration - 0.5) {
+    const title = document.title.replace(" - YouTube", "").trim();
+    console.log(`[YouTube Looper] Looping (mix intercept): "${title}"`);
+    this.currentTime = 0;
+  }
+}
+
 function attachToVideo() {
   const video = document.querySelector("video");
   if (video && video !== attachedVideo) {
     if (attachedVideo) {
       attachedVideo.removeEventListener("ended", onVideoEnded);
+      attachedVideo.removeEventListener("timeupdate", onTimeUpdate);
     }
     attachedVideo = video;
     video.addEventListener("ended", onVideoEnded);
+    video.addEventListener("timeupdate", onTimeUpdate);
   }
 }
 
@@ -106,6 +117,22 @@ function setQuality(quality) {
   window.dispatchEvent(new CustomEvent("yt-looper-set-quality", { detail: { quality } }));
 }
 
+const QUALITY_RANK = ["highres", "hd2880", "hd2160", "hd1440", "hd1080", "hd720", "large", "medium", "small", "tiny"];
+
+function isBelowHD(quality) {
+  const idx = QUALITY_RANK.indexOf(quality);
+  return idx === -1 || idx > QUALITY_RANK.indexOf("hd1080");
+}
+
+function getBestAvailableQuality(callback) {
+  const handler = (e) => {
+    window.removeEventListener("yt-looper-available-qualities-result", handler);
+    callback(e.detail.qualities);
+  };
+  window.addEventListener("yt-looper-available-qualities-result", handler);
+  window.dispatchEvent(new CustomEvent("yt-looper-get-available-qualities"));
+}
+
 let lowerPending = false;
 
 function lowerQuality() {
@@ -123,10 +150,20 @@ function lowerQuality() {
 
 function restoreQuality() {
   if (!savedQuality) return;
-  setQuality(savedQuality);
-  showToast(`⬆ Quality restored → ${savedQuality}`);
-  console.log(`[YouTube Looper] Quality restored to: ${savedQuality}`);
+  const toRestore = savedQuality;
   savedQuality = null;
+  if (isBelowHD(toRestore)) {
+    getBestAvailableQuality((qualities) => {
+      const best = qualities[0] || toRestore;
+      setQuality(best);
+      showToast(`⬆ Quality restored → ${best}`);
+      console.log(`[YouTube Looper] Quality restored to best available: ${best} (saved was: ${toRestore})`);
+    });
+  } else {
+    setQuality(toRestore);
+    showToast(`⬆ Quality restored → ${toRestore}`);
+    console.log(`[YouTube Looper] Quality restored to: ${toRestore}`);
+  }
 }
 
 function onHide() {

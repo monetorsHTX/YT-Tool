@@ -14,3 +14,11 @@ window.addEventListener("yt-looper-get-quality", () => {
     : null;
   window.dispatchEvent(new CustomEvent("yt-looper-quality-result", { detail: { quality } }));
 });
+
+window.addEventListener("yt-looper-get-available-qualities", () => {
+  const player = document.getElementById("movie_player");
+  const qualities = (player && typeof player.getAvailableQualityLevels === "function")
+    ? player.getAvailableQualityLevels()
+    : [];
+  window.dispatchEvent(new CustomEvent("yt-looper-available-qualities-result", { detail: { qualities } }));
+});
